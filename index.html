@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protetor do Rio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #2E7D32;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            color: #558B2F;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        #gameCanvas {
+            border: 4px solid #2E7D32;
+            border-radius: 10px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #B3E5FC 70%, #4FC3F7 100%);
+            display: block;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        #gameCanvas.locked {
+            cursor: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+        }
+
+        .info {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .info div {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #66BB6A, #43A047);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            max-width: 500px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #66BB6A, #43A047);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .instructions {
+            text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background: #E8F5E9;
+            border-radius: 10px;
+            color: #1B5E20;
+        }
+
+        .instructions p {
+            margin: 8px 0;
+        }
+
+        #finalScore {
+            font-size: 2em;
+            color: #2E7D32;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .click-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.3em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: pulse 2s infinite;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>🌊 Protetor do Rio 🌱</h1>
+        <p class="subtitle">Proteja a natureza coletando o lixo!</p>
+        
+        <div id="startScreen">
+            <h2 style="color: #2E7D32; margin-bottom: 20px;">Bem-vindo!</h2>
+            <p style="font-size: 1.1em; margin-bottom: 15px;">
+                Ajude a proteger o rio coletando todo o lixo antes que ele caia na água!
+            </p>
+            <div class="instructions">
+                <p><strong>📋 Como Jogar:</strong></p>
+                <p>🖱️ Clique na tela do jogo para travar o cursor</p>
+                <p>🖱️ Mova o mouse para controlar o personagem</p>
+                <p>🗑️ Colete todo o lixo que cai</p>
+                <p>💚 Colete power-ups para ganhar vida e reduzir poluição!</p>
+                <p>💧 Não deixe o lixo cair no rio!</p>
+                <p>❤️ Você tem 5 vidas (máximo de 10)</p>
+                <p>⭐ Quanto mais lixo coletar, maior sua pontuação!</p>
+                <p>⚡ A velocidade aumenta com o tempo!</p>
+                <p>⎋ Pressione ESC para liberar o cursor</p>
+            </div>
+            <button class="btn" onclick="startGame()">Começar a Jogar!</button>
+        </div>
+
+        <div id="gameOverScreen" class="hidden">
+            <h2 style="color: #2E7D32; margin-bottom: 20px;">Fim de Jogo!</h2>
+            <div id="finalScore"></div>
+            <p style="font-size: 1.1em; margin: 20px 0; color: #558B2F;">
+                Cada pequena ação conta! Continue protegendo nosso planeta! 🌍
+            </p>
+            <button class="btn" onclick="restartGame()">Jogar Novamente</button>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="clickHint" class="click-hint hidden">
+            🖱️ Clique aqui para começar!
+        </div>
+        
+        <div class="info">
+            <div>🗑️ Pontos: <span id="score">0</span></div>
+            <div>❤️ Vidas: <span id="lives">5</span></div>
+            <div>🌊 Poluição: <span id="pollution">0</span>%</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Estado do jogo
+        let gameState = 'start';
+        let score = 0;
+        let lives = 5;
+        let pollution = 0;
+        let gameSpeed = 1;
+        let gameTime = 0;
+
+        // Player
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            width: 60,
+            height: 60,
+            targetX: canvas.width / 2,
+            targetY: canvas.height / 2,
+            smoothness: 0.15
+        };
+
+        // Array de lixo
+        let trashItems = [];
+        let powerUps = [];
+
+        // Tipos de lixo
+        const trashTypes = [
+            { emoji: '🥤', points: 10, color: '#FF6B6B' },
+            { emoji: '🍕', points: 15, color: '#FFA07A' },
+            { emoji: '🧃', points: 10, color: '#FFD93D' },
+            { emoji: '🍔', points: 15, color: '#98D8C8' },
+            { emoji: '🥫', points: 20, color: '#B4A7D6' },
+            { emoji: '📦', points: 20, color: '#D4A373' },
+            { emoji: '🛍️', points: 25, color: '#FFB3BA' },
+            { emoji: '🧴', points: 30, color: '#BAE1FF' }
+        ];
+
+        // Tipos de power-ups
+        const powerUpTypes = [
+            { emoji: '💚', type: 'life', color: '#4CAF50' },
+            { emoji: '🌱', type: 'life', color: '#8BC34A' },
+            { emoji: '⭐', type: 'life', color: '#FFD700' }
+        ];
+
+        // Partículas de coleta
+        let particles = [];
+
+        // Controles do mouse
+        let isPointerLocked = false;
+
+        // Solicita pointer lock quando clicar no canvas
+        canvas.addEventListener('click', () => {
+            if (gameState === 'playing') {
+                canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+                canvas.requestPointerLock();
+            }
+        });
+
+        // Detecta mudanças no pointer lock
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = document.pointerLockElement === canvas;
+            if (isPointerLocked) {
+                canvas.classList.add('locked');
+                document.getElementById('clickHint').classList.add('hidden');
+            } else {
+                canvas.classList.remove('locked');
+                if (gameState === 'playing') {
+                    document.getElementById('clickHint').classList.remove('hidden');
+                }
+            }
+        });
+
+        document.addEventListener('mozpointerlockchange', () => {
+            isPointerLocked = document.mozPointerLockElement === canvas;
+            if (isPointerLocked) {
+                canvas.classList.add('locked');
+                document.getElementById('clickHint').classList.add('hidden');
+            } else {
+                canvas.classList.remove('locked');
+                if (gameState === 'playing') {
+                    document.getElementById('clickHint').classList.remove('hidden');
+                }
+            }
+        });
+
+        // Movimento do mouse
+        document.addEventListener('mousemove', (e) => {
+            if (gameState === 'playing' && isPointerLocked) {
+                // Usa movementX e movementY para movimento relativo
+                player.targetX += e.movementX;
+                player.targetY += e.movementY;
+                
+                // Limita dentro do canvas (mantém distância do rio - 150px)
+                player.targetX = Math.max(0, Math.min(canvas.width - player.width, player.targetX));
+                player.targetY = Math.max(0, Math.min(canvas.height - 150, player.targetY));
+            }
+        });
+
+        // Sistema de áudio
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playCollectSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Som agradável de coleta
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.type = 'sine';
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+        
+        function playLostLifeSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Som de perda
+            oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+            
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.type = 'sawtooth';
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        function playPowerUpSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Som mágico de power-up
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1000, audioContext.currentTime + 0.1);
+            oscillator.frequency.exponentialRampToValueAtTime(1400, audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.type = 'triangle';
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            gameState = 'playing';
+            resetGame();
+            document.getElementById('clickHint').classList.remove('hidden');
+            gameLoop();
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 5;
+            pollution = 0;
+            gameSpeed = 1;
+            gameTime = 0;
+            trashItems = [];
+            powerUps = [];
+            particles = [];
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.targetX = canvas.width / 2;
+            player.targetY = canvas.height / 2;
+            updateUI();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            startGame();
+        }
+
+        function spawnTrash() {
+            if (Math.random() < 0.02 + (gameSpeed - 1) * 0.01) {
+                const type = trashTypes[Math.floor(Math.random() * trashTypes.length)];
+                trashItems.push({
+                    x: Math.random() * (canvas.width - 40) + 20,
+                    y: -40,
+                    width: 40,
+                    height: 40,
+                    speed: 1 + Math.random() * 1 * gameSpeed, // Velocidade reduzida
+                    type: type,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: (Math.random() - 0.5) * 0.1
+                });
+            }
+        }
+
+        function spawnPowerUp() {
+            // Power-ups aparecem com menos frequência (aproximadamente a cada 10-15 segundos)
+            if (Math.random() < 0.003) {
+                const type = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+                powerUps.push({
+                    x: Math.random() * (canvas.width - 40) + 20,
+                    y: -40,
+                    width: 40,
+                    height: 40,
+                    speed: 1.5,
+                    type: type,
+                    rotation: 0,
+                    pulseScale: 1
+                });
+            }
+        }
+
+        function updatePlayer() {
+            // Movimento suave em direção ao mouse (horizontal e vertical)
+            const dx = player.targetX - player.x;
+            const dy = player.targetY - player.y;
+            player.x += dx * player.smoothness;
+            player.y += dy * player.smoothness;
+        }
+
+        function updateTrash() {
+            // Aumenta a velocidade gradualmente com o tempo (a cada 5 segundos)
+            gameTime++;
+            gameSpeed = 1 + (gameTime / 300) * 0.5; // Aumenta 0.5 a cada 5 segundos
+
+            for (let i = trashItems.length - 1; i >= 0; i--) {
+                const trash = trashItems[i];
+                trash.y += trash.speed;
+                trash.rotation += trash.rotationSpeed;
+
+                // Verifica colisão com player
+                if (
+                    trash.x < player.x + player.width &&
+                    trash.x + trash.width > player.x &&
+                    trash.y < player.y + player.height &&
+                    trash.y + trash.height > player.y
+                ) {
+                    score += trash.type.points;
+                    createParticles(trash.x + trash.width / 2, trash.y + trash.height / 2, trash.type.color);
+                    playCollectSound(); // Toca som de coleta
+                    trashItems.splice(i, 1);
+                    updateUI();
+                    continue;
+                }
+
+                // Verifica se caiu no rio
+                if (trash.y > canvas.height - 80) {
+                    lives--;
+                    pollution = Math.min(100, pollution + 10);
+                    playLostLifeSound(); // Toca som de perda
+                    trashItems.splice(i, 1);
+                    updateUI();
+
+                    if (lives <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+        }
+
+        function updatePowerUps() {
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                const powerUp = powerUps[i];
+                powerUp.y += powerUp.speed;
+                powerUp.rotation += 0.05;
+                powerUp.pulseScale = 1 + Math.sin(Date.now() / 200) * 0.2;
+
+                // Verifica colisão com player
+                if (
+                    powerUp.x < player.x + player.width &&
+                    powerUp.x + powerUp.width > player.x &&
+                    powerUp.y < player.y + player.height &&
+                    powerUp.y + powerUp.height > player.y
+                ) {
+                    // Adiciona vida (máximo de 10 vidas)
+                    if (lives < 10) {
+                        lives++;
+                    }
+                    // Também reduz poluição
+                    pollution = Math.max(0, pollution - 15);
+                    
+                    createParticles(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2, powerUp.type.color);
+                    playPowerUpSound();
+                    powerUps.splice(i, 1);
+                    updateUI();
+                    continue;
+                }
+
+                // Remove se saiu da tela
+                if (powerUp.y > canvas.height) {
+                    powerUps.splice(i, 1);
+                }
+            }
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6 - 2,
+                    life: 30,
+                    color: color
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.3;
+                p.life--;
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawRiver() {
+            // Água
+            const gradient = ctx.createLinearGradient(0, canvas.height - 80, 0, canvas.height);
+            gradient.addColorStop(0, '#4FC3F7');
+            gradient.addColorStop(1, '#0288D1');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+
+            // Ondas
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                const offset = (Date.now() / 500 + i * 2) % 4;
+                for (let x = -50; x < canvas.width + 50; x += 50) {
+                    const y = canvas.height - 70 + i * 15 + Math.sin((x + offset * 50) / 30) * 5;
+                    if (x === -50) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Poluição visual
+            if (pollution > 30) {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+            }
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+            
+            // Personagem (lixeiro ecológico)
+            ctx.font = '50px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('♻️', 0, 0);
+            
+            ctx.restore();
+        }
+
+        function drawTrash() {
+            trashItems.forEach(trash => {
+                ctx.save();
+                ctx.translate(trash.x + trash.width / 2, trash.y + trash.height / 2);
+                ctx.rotate(trash.rotation);
+                
+                // Lixo
+                ctx.font = '38px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(trash.type.emoji, 0, 0);
+                
+                ctx.restore();
+            });
+        }
+
+        function drawPowerUps() {
+            powerUps.forEach(powerUp => {
+                ctx.save();
+                ctx.translate(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2);
+                
+                // Escala pulsante
+                ctx.scale(powerUp.pulseScale, powerUp.pulseScale);
+                ctx.rotate(powerUp.rotation);
+                
+                // Power-up
+                ctx.font = '42px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(powerUp.type.emoji, 0, 0);
+                
+                ctx.restore();
+                
+                // Círculo de destaque
+                ctx.strokeStyle = powerUp.type.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2, 25 * powerUp.pulseScale, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                if (p.life > 15) { // Só desenha partículas com vida acima de 15
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function drawBackground() {
+            // Nuvens
+            ctx.fillStyle = '#FFFFFF';
+            const cloudY = (Date.now() / 50) % (canvas.height - 100);
+            for (let i = 0; i < 3; i++) {
+                const x = ((Date.now() / 100 + i * 250) % (canvas.width + 200)) - 100;
+                ctx.beginPath();
+                ctx.arc(x, 50 + i * 40, 30, 0, Math.PI * 2);
+                ctx.arc(x + 25, 50 + i * 40, 35, 0, Math.PI * 2);
+                ctx.arc(x + 50, 50 + i * 40, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('pollution').textContent = Math.round(pollution);
+        }
+
+        function gameOver() {
+            gameState = 'gameOver';
+            document.getElementById('finalScore').textContent = `Pontuação Final: ${score}`;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+            document.getElementById('clickHint').classList.add('hidden');
+            
+            // Libera o pointer lock
+            if (document.exitPointerLock) {
+                document.exitPointerLock();
+            } else if (document.mozExitPointerLock) {
+                document.mozExitPointerLock();
+            }
+        }
+
+        function gameLoop() {
+            if (gameState !== 'playing') return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground();
+            drawRiver();
+            drawPlayer();
+            drawTrash();
+            drawPowerUps();
+            drawParticles();
+
+            updatePlayer();
+            spawnTrash();
+            spawnPowerUp();
+            updateTrash();
+            updatePowerUps();
+            updateParticles();
+
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
